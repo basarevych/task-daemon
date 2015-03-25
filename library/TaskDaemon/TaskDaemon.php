@@ -11,7 +11,6 @@ namespace TaskDaemon;
 
 use GearmanClient;
 use GearmanWorker;
-use Memcached;
 
 /**
  * Daemon class (singleton)
@@ -27,21 +26,35 @@ class TaskDaemon
      */
     protected static $options = [
         'namespace' => 'TaskDaemon',
+        'num_workers' => 10,
         'pid_file'  => '/var/run/local-daemon.pid',
         'debug' => false,
         'gearman' => [
             'host' => 'localhost',
             'port' => 4730,
         ],
-        'memcached' => [
-            'host' => 'localhost',
-            'port' => 11211,
-        ],
     ];
 
+    /**
+     * Daemon started
+     *
+     * @var boolean
+     */
     protected $started = false;
+
+    /**
+     * Exit requested
+     *
+     * @var boolean
+     */
+    protected $exitRequested = false;
+
+    /**
+     * Known tasks
+     *
+     * @var array
+     */
     protected $tasks = [];
-    protected $memcached = null;
 
     /**
      * Worker PIDs
@@ -59,41 +72,25 @@ class TaskDaemon
 
         if (!isset($options['namespace']))
             throw new \Exception("No namespace in the config");
+        if (!isset($options['num_workers']))
+            throw new \Exception("No num_workers in the config");
 
         if (!isset($options['pid_file']))
             throw new \Exception("No pid_file in the config");
-
-        if (!isset($options['memcached']['host']))
-            throw new \Exception("No memcached host in the config");
-        if (!isset($options['memcached']['port']))
-            throw new \Exception("No memcached port in the config");
 
         if (!isset($options['gearman']['host']))
             throw new \Exception("No gearman host in the config");
         if (!isset($options['gearman']['port']))
             throw new \Exception("No gearman port in the config");
-
-        $this->memcached = new Memcached();
-        $this->memcached->addServer($options['memcached']['host'], $options['memcached']['port']);
     }
 
-    public function setSharedVar($name, $value)
-    {
-        $options = static::getOptions();
-
-        $this->memcached->set($options['namespace'] . '_' . $name, $value);
-        return $this;
-    }
-
-    public function getSharedVar($name, $default)
-    {
-        $options = static::getOptions();
-
-        $value = $this->memcached->get($options['namespace'] . '_' . $name);
-        $result = $this->memcached->getResultCode();
-        return $result == Memcached::RES_NOTFOUND ? $default : $value;
-    }
-
+    /**
+     * Add task to the list of known tasks
+     *
+     * @param string $name
+     * @param AbstractTask $object
+     * @return TaskDaemon
+     */
     public function defineTask($name, $object)
     {
         if ($this->started)
@@ -108,6 +105,14 @@ class TaskDaemon
         return $this;
     }
 
+    /**
+     * Add known task to the run queue
+     *
+     * @param string $name
+     * @param mixed $data
+     * @param boolean $allowDuplicates
+     * @return TaskDaemon
+     */
     public function runTask($name, $data = null, $allowDuplicates = false)
     {
         $options = static::getOptions();
@@ -129,6 +134,11 @@ class TaskDaemon
         return $this;
     }
 
+    /**
+     * Ping job servers
+     *
+     * @return TaskDaemon
+     */
     public function ping()
     {
         $options = static::getOptions();
@@ -149,6 +159,11 @@ class TaskDaemon
         return $ping;
     }
 
+    /**
+     * Start the daemon with workers (by fork()ing)
+     *
+     * @return TaskDaemon
+     */
     public function start()
     {
         $this->started = true;
@@ -187,14 +202,11 @@ class TaskDaemon
         declare(ticks = 1);
 
         $exitCallback = function ($signo) use ($fpPid, $pidFile, $debug) {
-            if (count($this->pids) == 0)
-                exit;
-
             if ($debug)
                 echo "Cleaning and exiting" . PHP_EOL;
 
             foreach ($this->pids as $pid)
-                posix_kill($pid, SIGKILL);
+                posix_kill($pid, SIGTERM);
 
             foreach ($this->pids as $pid)
                 pcntl_waitpid($pid, $status);
@@ -249,14 +261,36 @@ class TaskDaemon
                 $dead = pcntl_waitpid(-1, $status, WNOHANG);
             }
 
-            while (count($this->pids) < 10) {
+            while (count($this->pids) < $options['num_workers']) {
                 $pid = pcntl_fork();
                 if ($pid == 0) {
+                    declare(ticks = 1);
+
+                    $exitCallback = function ($signo) {
+                        $this->exitRequested = true;
+                    };
+
+                    pcntl_signal(SIGTERM, $exitCallback);
+                    pcntl_signal(SIGINT, $exitCallback);
+                    pcntl_signal_dispatch();
+
                     $this->pids = [];
-                    if ($gmWorker->work()) {
+                    $gmWorker->setTimeout(1000);
+                    while (!$this->exitRequested) {
+                        $gmWorker->work();
                         $code = $gmWorker->returnCode();
-                        if ($code != GEARMAN_SUCCESS && @$options['debug'] === true)
-                            echo "Worker failed: $code";
+                        switch ($code) {
+                            case GEARMAN_TIMEOUT:
+                                sleep(1);
+                                break;
+                            case GEARMAN_SUCCESS:
+                                $this->exitRequested = true;
+                                break;
+                            default:
+                                if (@$options['debug'] === true)
+                                    echo "Worker failed: $code";
+                                exit(1);
+                        }
                     }
                     exit;
                 } else if ($pid > 0) {
@@ -268,7 +302,12 @@ class TaskDaemon
         }
     }
 
-    public function kill()
+    /**
+     * Stop the daemon
+     *
+     * @return TaskDaemon
+     */
+    public function stop()
     {
         $options = static::getOptions();
         $debug = @$options['debug'] === true;
@@ -296,6 +335,18 @@ class TaskDaemon
 
         posix_kill($pid, SIGTERM);
         pcntl_waitpid($pid, $status);
+    }
+
+    /**
+     * Restart the daemon
+     *
+     * @return TaskDaemon
+     */
+    public function restart()
+    {
+        $this->stop();
+        sleep(3);
+        $this->start();
     }
 
     /**
