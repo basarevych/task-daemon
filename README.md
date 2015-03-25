@@ -2,8 +2,7 @@ Task Daemon
 ===========
 
 Simple PHP fork()ing daemon which runs taks in the background. It uses
-Gearman internally, but it is not exposed to the user, so you don't
-have to know anything about it.
+Gearman internally, but it is not exposed to the user.
 
 Installation
 ------------
