@@ -2,10 +2,12 @@
 
 namespace Example;
 
+use TaskDaemon\TaskDaemon;
+
 $loader = require '../vendor/autoload.php';
 $loader->add('Example', __DIR__ . '/..');
 
-Daemon::setOptions([
+TaskDaemon::setOptions([
     'namespace' => 'ExampleDaemon',
     'pid_file' => '/tmp/daemon-example.pid',
     'debug' => true,
@@ -19,12 +21,14 @@ Daemon::setOptions([
     ],
 ]);
 
-$daemon = Daemon::getInstance();
+$daemon = TaskDaemon::getInstance();
 
 if ($argc >= 2 && $argv[1] == 'kill') {
     $daemon->kill();
     exit;
 }
+
+$daemon->defineTask('reverse', new ReverseTask());
 
 $daemon->start();
 $daemon->runTask('reverse', 'hello');

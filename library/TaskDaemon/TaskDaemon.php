@@ -14,11 +14,11 @@ use GearmanWorker;
 use Memcached;
 
 /**
- * Abstract daemon (singleton)
+ * Daemon class (singleton)
  * 
  * @category    TaskDaemon
  */
-abstract class AbstractDaemon
+class TaskDaemon
 {
     /**
      * Daemon options
@@ -39,8 +39,8 @@ abstract class AbstractDaemon
         ],
     ];
 
+    protected $started = false;
     protected $tasks = [];
-    protected $jobs = [];
     protected $memcached = null;
 
     /**
@@ -75,13 +75,7 @@ abstract class AbstractDaemon
 
         $this->memcached = new Memcached();
         $this->memcached->addServer($options['memcached']['host'], $options['memcached']['port']);
-
-        $this->init();
     }
-
-    abstract public function init();
-
-    abstract public function run();
 
     public function setSharedVar($name, $value)
     {
@@ -100,7 +94,21 @@ abstract class AbstractDaemon
         return $result == Memcached::RES_NOTFOUND ? $default : $value;
     }
 
-    public function runTask($name, $data = null, $allowDuplicates = false, $callback = null)
+    public function defineTask($name, $object)
+    {
+        if ($this->started)
+            throw new \Exception("Define tasks before start()ing the daemon");
+
+        if (! $object instanceof AbstractTask)
+            throw new \Exception("Task must implement AbstractTask");
+
+        $object->setDaemon($this);
+        $this->tasks[$name] = $object;
+
+        return $this;
+    }
+
+    public function runTask($name, $data = null, $allowDuplicates = false)
     {
         $options = static::getOptions();
         $debug = @$options['debug'] === true;
@@ -123,6 +131,8 @@ abstract class AbstractDaemon
 
     public function start()
     {
+        $this->started = true;
+
         $options = static::getOptions();
         $debug = @$options['debug'] === true;
 
@@ -164,7 +174,7 @@ abstract class AbstractDaemon
                 echo "Cleaning and exiting" . PHP_EOL;
 
             foreach ($this->pids as $pid)
-                posix_kill($pid, $signo);
+                posix_kill($pid, SIGKILL);
 
             foreach ($this->pids as $pid)
                 pcntl_waitpid($pid, $status);
@@ -195,23 +205,13 @@ abstract class AbstractDaemon
                     return;
                 }
 
-                $unique = $job->unique();
-                if (isset($this->jobs[$unique])) {
-                    if (@$options['debug'] === true)
-                        echo "Already running task, rejected: $name" . PHP_EOL;
-                    return;
-                }
-
-                $this->jobs[$unique] = $job;
                 if (@$options['debug'] === true)
                     echo "Running worker for: $name" . PHP_EOL;
 
                 $worker = clone $object;
                 $data = json_decode($job->workload(), true);
                 $worker->setData($data);
-                $result = $worker->run();
-
-                unset($this->jobs[$unique]);
+                $worker->run();
             };
             $gmWorker->addFunction($options['namespace'] . '_' . $name, $task);
         }
@@ -228,8 +228,6 @@ abstract class AbstractDaemon
 
                 $dead = pcntl_waitpid(-1, $status, WNOHANG);
             }
-
-            $this->run();
 
             while (count($this->pids) < 10) {
                 $pid = pcntl_fork();
@@ -278,17 +276,6 @@ abstract class AbstractDaemon
 
         posix_kill($pid, SIGTERM);
         pcntl_waitpid($pid, $status);
-    }
-
-    protected function defineTask($name, $object)
-    {
-        if (! $object instanceof AbstractTask)
-            throw new \Exception("Task must implement AbstractTask");
-
-        $object->setDaemon($this);
-        $this->tasks[$name] = $object;
-
-        return $this;
     }
 
     /**
