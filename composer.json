@@ -1,0 +1,29 @@
+{
+    "name": "basarevych/task-daemon",
+    "type": "library",
+    "description": "Simple PHP daemon library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Ross Basarevych",
+            "email": "basarevych@gmail.com"
+        }
+    ],
+    "keywords": [
+        "php",
+        "daemon"
+    ],
+    "homepage": "https://github.com/basarevych/task-daemon",
+    "require": {
+        "php": ">=5.4.8",
+        "ext-pcntl": "*",
+        "ext-posix": "*",
+        "ext-openssl": "*",
+        "ext-gearman": "*"
+    },
+    "autoload": {
+        "psr-0": {
+            "TaskDaemon": "library"
+        }
+    }
+}
