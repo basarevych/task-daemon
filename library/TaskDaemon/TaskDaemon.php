@@ -129,6 +129,26 @@ class TaskDaemon
         return $this;
     }
 
+    public function ping()
+    {
+        $options = static::getOptions();
+        $debug = @$options['debug'] === true;
+
+        $gmClient = new GearmanClient();
+        $gmClient->addServer($options['gearman']['host'], $options['gearman']['port']);
+
+        $ping = $gmClient->ping(self::generateUnique());
+
+        if ($debug)
+            echo "Pinging job server: " . ($ping ? 'Success' : 'Failure') . PHP_EOL;
+
+        $code = $gmClient->returnCode();
+        if ($code != GEARMAN_SUCCESS)
+            throw new \Exception("Could not add task: $name ($code)");
+
+        return $ping;
+    }
+
     public function start()
     {
         $this->started = true;
@@ -148,7 +168,7 @@ class TaskDaemon
             fclose($fpPid);
             if ($debug)
                 echo "Daemon already running" . PHP_EOL;
-            return;
+            return $this;
         }
 
         if ($debug)
@@ -158,7 +178,7 @@ class TaskDaemon
         if ($fork < 0)
             throw new \Exception("fork() failed: $fork");
         else if ($fork)
-            return;
+            return $this;
 
         ftruncate($fpPid, 0);
         fwrite($fpPid, getmypid() . PHP_EOL);

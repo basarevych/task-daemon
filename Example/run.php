@@ -28,6 +28,8 @@ if ($argc >= 2 && $argv[1] == 'kill') {
     exit;
 }
 
+var_dump($daemon->ping());
+
 $daemon->defineTask('reverse', new ReverseTask());
 
 $daemon->start();
