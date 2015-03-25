@@ -12,8 +12,7 @@ class ReverseTask extends AbstractTask
         sleep(10);
 
         $data = $this->getData();
-        $result = strrev($data);
 
-        echo "REVERSE end" . PHP_EOL;
+        echo "REVERSE end: " . strrev($data) . PHP_EOL;
     }
 }
