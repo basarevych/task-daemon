@@ -14,8 +14,10 @@ TaskDaemon::setOptions([
     'debug' => true,
 ]);
 
+$taskName = 'reverse';
+
 $daemon = TaskDaemon::getInstance();
-$daemon->defineTask('reverse', new ReverseTask());
+$daemon->defineTask($taskName, new ReverseTask());
 
 if ($argc >= 2) {
     switch ($argv[1]) {
@@ -28,5 +30,5 @@ if ($argc >= 2) {
 var_dump($daemon->ping());
 
 $daemon->start();
-$daemon->runTask('reverse', 'hello');
-$daemon->runTask('reverse', 'hello');
+$daemon->runTask($taskName, 'hello');
+$daemon->runTask($taskName, 'hello');
