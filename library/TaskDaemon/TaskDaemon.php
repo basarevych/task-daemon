@@ -121,7 +121,7 @@ class TaskDaemon
         if ($debug)
             echo "Adding task: $name" . PHP_EOL;
 
-        $unique = $allowDuplicates ? self::generateUnique() : $name;
+        $unique = $allowDuplicates ? self::generateUnique() : $options['namespace'] . '_' . $name;
 
         $gmClient = new GearmanClient();
         $gmClient->addServer($options['gearman']['host'], $options['gearman']['port']);
