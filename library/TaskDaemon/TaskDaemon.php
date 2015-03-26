@@ -27,7 +27,7 @@ class TaskDaemon
     protected static $options = [
         'namespace' => 'TaskDaemon',
         'num_workers' => 10,
-        'pid_file'  => '/var/run/local-daemon.pid',
+        'pid_file'  => '/var/tmp/local-daemon.pid',
         'debug' => false,
         'gearman' => [
             'host' => 'localhost',
