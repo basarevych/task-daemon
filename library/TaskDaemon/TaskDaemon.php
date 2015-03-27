@@ -20,11 +20,6 @@ use GearmanWorker;
 class TaskDaemon
 {
     /**
-     * @const MAX_FUNCTION_NAME
-     */
-    const MAX_FUNCTION_NAME = 57;
-
-    /**
      * Daemon options
      *
      * @var array
@@ -126,8 +121,8 @@ class TaskDaemon
         if ($debug)
             echo "Adding task: $name" . PHP_EOL;
 
-        $function = substr($options['namespace'] . '_' . $name, 0, static::MAX_FUNCTION_NAME);
-        $unique = $allowDuplicates ? self::generateUnique() : $function;
+        $function = $options['namespace'] . '_' . $name;
+        $unique = $allowDuplicates ? self::generateUnique() : md5($function);
 
         $gmClient = new GearmanClient();
         $gmClient->addServer($options['gearman']['host'], $options['gearman']['port']);
@@ -236,14 +231,8 @@ class TaskDaemon
         $gmWorker->addServer($options['gearman']['host'], $options['gearman']['port']);
 
         foreach ($this->tasks as $name => $object) {
-            $function = substr($options['namespace'] . '_' . $name, 0, static::MAX_FUNCTION_NAME);
+            $function = $options['namespace'] . '_' . $name;
             $task = function ($job) use ($name, $function, $object, $options) {
-                if (!isset($this->tasks[$name])) {
-                    if (@$options['debug'] === true)
-                        echo "Unknown task: $name" . PHP_EOL;
-                    return;
-                }
-
                 if (@$options['debug'] === true)
                     echo "Running worker for: $function" . PHP_EOL;
 
@@ -411,6 +400,6 @@ class TaskDaemon
         if ($randomData === false)
             throw new \Exception('Could not generate random string');
 
-        return substr(hash('sha512', $randomData), 0, 32);
+        return md5($randomData);
     }
 }
