@@ -239,7 +239,13 @@ class TaskDaemon
                 $worker = clone $object;
                 $data = json_decode($job->workload(), true);
                 $worker->setData($data);
+
+                ob_start();
                 $worker->run();
+                if (@$options['debug'] === true)
+                    ob_end_flush();
+                else
+                    ob_end_clean();
             };
             $gmWorker->addFunction($function, $task);
         }
