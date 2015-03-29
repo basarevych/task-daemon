@@ -79,5 +79,5 @@ abstract class AbstractTask
     /**
      * Do the job
      */
-    abstract public function run();
+    abstract public function run(&$exitRequested);
 }

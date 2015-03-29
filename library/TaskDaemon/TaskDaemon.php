@@ -208,7 +208,6 @@ class TaskDaemon
 
             foreach ($this->pids as $pid)
                 posix_kill($pid, SIGTERM);
-
             foreach ($this->pids as $pid)
                 pcntl_waitpid($pid, $status);
 
@@ -241,7 +240,7 @@ class TaskDaemon
                 $worker->setData($data);
 
                 ob_start();
-                $worker->run();
+                $worker->run($this->exitRequested);
                 if (@$options['debug'] === true)
                     ob_end_flush();
                 else

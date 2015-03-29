@@ -6,13 +6,16 @@ use TaskDaemon\AbstractTask;
 
 class ReverseTask extends AbstractTask
 {
-    public function run()
+    public function run(&$exitRequested)
     {
         echo "REVERSE start" . PHP_EOL;
-        sleep(10);
+
+        while (!$exitRequested) {
+            echo "Job cycle" . PHP_EOL;
+            sleep(3);
+        }
 
         $data = $this->getData();
-
         echo "REVERSE end: " . strrev($data) . PHP_EOL;
     }
 }
