@@ -121,13 +121,17 @@ class TaskDaemon
         if ($debug)
             echo "Adding task: $name" . PHP_EOL;
 
-        $function = $options['namespace'] . '_' . $name;
-        $unique = $allowDuplicates ? self::generateUnique() : md5($function);
+        $function = $options['namespace'] . '-' . $name;
+        $data = json_encode($data);
+        if ($allowDuplicates)
+            $unique = self::generateUnique();
+        else
+            $unique = md5($function . '-' . $data);
 
         $gmClient = new GearmanClient();
         $gmClient->addServer($options['gearman']['host'], $options['gearman']['port']);
 
-        $gmClient->doBackground($function, json_encode($data), $unique);
+        $gmClient->doBackground($function, $data, $unique);
         $code = $gmClient->returnCode();
         if ($code != GEARMAN_SUCCESS)
             throw new \Exception("Could not add task: $name ($code)");
@@ -230,7 +234,7 @@ class TaskDaemon
         $gmWorker->addServer($options['gearman']['host'], $options['gearman']['port']);
 
         foreach ($this->tasks as $name => $object) {
-            $function = $options['namespace'] . '_' . $name;
+            $function = $options['namespace'] . '-' . $name;
             $task = function ($job) use ($name, $function, $object, $options) {
                 if (@$options['debug'] === true)
                     echo "Running worker for: $function" . PHP_EOL;
