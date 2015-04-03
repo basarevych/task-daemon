@@ -17,7 +17,7 @@ This daemon requires running Gearman server and the following PHP extensions:
 Add to require section of composer.json:
 
 ```
-    "basarevych/task-daemon": "0.1.*"
+    "basarevych/task-daemon": "0.2.*"
 ```
  
 Usage
