@@ -32,7 +32,7 @@ use TaskDaemon\AbstractTask;
 
 class ReverseTask extends AbstractTask
 {
-    public function run()
+    public function run(&$exitRequested)
     {
         $data = $this->getData();
         $result = strrev($data);
@@ -63,6 +63,13 @@ $daemon->runTask('reverse', 'hello');
 
 This will save 'olleh' into a file. The daemon will continue to wait for commands (runTask()s)
 in the background.
+
+More examples:
+```shell
+> cd Example
+> php run.php
+> php run.php stop
+```
 
 Methods
 -------

@@ -12,7 +12,7 @@ class ReverseTask extends AbstractTask
 
         while (!$exitRequested) {
             echo "Job cycle" . PHP_EOL;
-            sleep(3);
+            sleep(1);
         }
 
         $data = $this->getData();

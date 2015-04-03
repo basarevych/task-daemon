@@ -243,11 +243,10 @@ class TaskDaemon
                 $data = json_decode($job->workload(), true);
                 $worker->setData($data);
 
-                ob_start();
+                if (@$options['debug'] !== true)
+                    ob_start();
                 $worker->run($this->exitRequested);
-                if (@$options['debug'] === true)
-                    ob_end_flush();
-                else
+                if (@$options['debug'] !== true)
                     ob_end_clean();
             };
             $gmWorker->addFunction($function, $task);
