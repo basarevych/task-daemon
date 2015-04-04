@@ -23,7 +23,7 @@ Add to require section of composer.json:
 Usage
 -----
 
-First, create the Task:
+Simple task example:
 
 ```php
 namespace Example;
@@ -64,7 +64,37 @@ $daemon->runTask('reverse', 'hello');
 This will save 'olleh' into a file. The daemon will continue to wait for commands (runTask()s)
 in the background.
 
-More examples:
+Ifinite background task example:
+
+```php
+namespace Example;
+
+use TaskDaemon\AbstractTask;
+
+class InfiniteTask extends AbstractTask
+{
+    public function run(&$exitRequested)
+    {
+        echo "start" . PHP_EOL;
+
+        while (!$exitRequested) {
+            echo "Job cycle here" . PHP_EOL;
+            sleep(1);
+        }
+
+        echo "end: " . PHP_EOL;
+    }
+}
+```
+
+```php
+$daemon = TaskDaemon::getInstance();
+$daemon->defineTask('infinite', new InfiniteTask());
+
+$daemon->runTask('infinite');
+```
+
+More examples (see run.php):
 ```shell
 > cd Example
 > php run.php
