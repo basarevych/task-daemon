@@ -97,7 +97,9 @@ $daemon->runTask('infinite');
 More examples (see run.php):
 ```shell
 > cd Example
+The following line could be executed several times, only first run will create a daemon:
 > php run.php
+Terminate the daemon:
 > php run.php stop
 ```
 
