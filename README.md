@@ -100,8 +100,13 @@ Methods
 
 * **runTask($name, $data = null, $allowDuplicates = false)**
 
-  Run previously defined task. **$data** will be passed to the task. If **$allowDuplicates** is true,
-  several tasks of the same name could be run at the same time.
+  Run previously defined task. **$data** will be passed to the task (could be an integer, string or array).
+
+  If **$allowDuplicates** is true, several tasks of the same name and the same data could be run at the same time.
+
+  For example, while runTask('task1', "data1") is executing call to the same task: runTask("task1", "data1")
+  will be ignored. But task with a different name or data: runTask("task1", "otherdata") or runTask("task2")
+  will be run.
 
 * **ping()**
 
