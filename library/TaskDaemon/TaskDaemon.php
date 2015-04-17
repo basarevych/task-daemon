@@ -203,6 +203,7 @@ class TaskDaemon
         ftruncate($fpPid, 0);
         fwrite($fpPid, getmypid() . PHP_EOL);
         fflush($fpPid);
+        chmod($pidFile, 0666);
 
         declare(ticks = 1);
 
