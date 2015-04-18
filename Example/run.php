@@ -41,16 +41,18 @@ if ($argc >= 2) {
 
     // Define our tasks
     $daemon->defineTask('reverse', new ReverseTask());
+    $daemon->defineTask('infinite', new InfiniteTask());
 
     // Daemonize if there is no daemon already in which case this will do nothing
     $daemon->start();
 
-    // Run the task
+    // Run the regular task
     $daemon->runTask('reverse', 'hello');
 
-    // This will do nothing as we have already lunched this task
-    $daemon->runTask('reverse', 'hello');
+    // Try to run the infinite task
+    // First invocation will launch the task, later will do nothing
+    $daemon->runTask('infinite');
 
     // You can rerun "php run.php" anytime you want now
-    // Our daemon is started now so it will do nothing
+    // Our daemon is started now so it won't fork anymore
 }
