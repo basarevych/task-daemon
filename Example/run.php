@@ -4,31 +4,53 @@ namespace Example;
 
 use TaskDaemon\TaskDaemon;
 
+// Autoloader stuff, you probably don't need it
 $loader = require '../vendor/autoload.php';
 $loader->add('Example', __DIR__ . '/..');
 
+// Configure TaskDaemon (optional)
 TaskDaemon::setOptions([
     'namespace' => 'ExampleDaemon',
     'num_workers' => 10,
-    'pid_file' => '/tmp/daemon-example.pid',
+    'pid_file' => '/var/tmp/daemon-example.pid',
     'debug' => true,
+    'gearman' => [ // Gearman server
+        'host' => 'localhost',
+        'port' => 4730,
+    ],
 ]);
 
-$taskName = 'reverse';
-
+// Get the TaskDaemon instance (singletone)
 $daemon = TaskDaemon::getInstance();
-$daemon->defineTask($taskName, new ReverseTask());
 
 if ($argc >= 2) {
     switch ($argv[1]) {
-        case 'stop':    $daemon->stop(); break;
-        case 'restart': $daemon->restart(); break;
+        case 'stop':
+            // Tell the daemon to terminate
+            $daemon->stop();
+            break;
+        case 'restart':
+            // Restart the daemon
+            $daemon->restart();
+            break;
     }
-    exit;
+} else {
+    // Check Gearman is up and running
+    if (!$daemon->ping())
+        exit(1);
+
+    // Define our tasks
+    $daemon->defineTask('reverse', new ReverseTask());
+
+    // Daemonize if there is no daemon already in which case this will do nothing
+    $daemon->start();
+
+    // Run the task
+    $daemon->runTask('reverse', 'hello');
+
+    // This will do nothing as we have already lunched this task
+    $daemon->runTask('reverse', 'hello');
+
+    // You can rerun "php run.php" anytime you want now
+    // Our daemon is started now so it will do nothing
 }
-
-var_dump($daemon->ping());
-
-$daemon->start();
-$daemon->runTask($taskName, 'hello');
-$daemon->runTask($taskName, 'hello');

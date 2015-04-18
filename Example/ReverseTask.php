@@ -8,14 +8,18 @@ class ReverseTask extends AbstractTask
 {
     public function run(&$exitRequested)
     {
-        echo "REVERSE start" . PHP_EOL;
-
-        while (!$exitRequested) {
-            echo "Job cycle" . PHP_EOL;
-            sleep(1);
-        }
+        echo "-> REVERSE TASK STARTED" . PHP_EOL;
 
         $data = $this->getData();
-        echo "REVERSE end: " . strrev($data) . PHP_EOL;
+        echo "-> DATA: " . $data . PHP_EOL;
+        echo "-> RESULT: " . strrev($data) . PHP_EOL;
+
+        while (!$exitRequested) {
+            // Imitate doing something while checking $exitRequested periodically
+            echo "-> REVERSE TASK JOB CYCLE (sleep 5 seconds)" . PHP_EOL;
+            sleep(5);
+        }
+
+        echo "-> REVERSE TASK ENDED" . PHP_EOL;
     }
 }

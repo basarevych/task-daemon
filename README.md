@@ -20,85 +20,22 @@ Add to require section of composer.json:
     "basarevych/task-daemon": "0.2.*"
 ```
  
-Usage
------
+Examples
+--------
 
-Simple task example:
+Have a look at Example directory. Here you will find ReverseTask.php which is our example task and
+run.php which is our program.
 
-```php
-namespace Example;
-
-use TaskDaemon\AbstractTask;
-
-class ReverseTask extends AbstractTask
-{
-    public function run(&$exitRequested)
-    {
-        $data = $this->getData();
-        $result = strrev($data);
-        file_put_contents('/tmp/result', $result);
-    }
-}
-```
-
-Now execute it in the background:
-
-```php
-namespace Example;
-
-use TaskDaemon\TaskDaemon;
-
-TaskDaemon::setOptions([
-    'namespace' => 'ExampleDaemon',
-    'num_workers' => 5,
-    'pid_file' => '/tmp/daemon-example.pid',
-]);
-
-$daemon = TaskDaemon::getInstance();
-$daemon->defineTask('reverse', new ReverseTask());
-
-$daemon->start();
-$daemon->runTask('reverse', 'hello');
-```
-
-This will save 'olleh' into a file. The daemon will continue to wait for commands (runTask()s)
-in the background.
-
-Ifinite background task example:
-
-```php
-namespace Example;
-
-use TaskDaemon\AbstractTask;
-
-class InfiniteTask extends AbstractTask
-{
-    public function run(&$exitRequested)
-    {
-        echo "start" . PHP_EOL;
-
-        while (!$exitRequested) {
-            echo "Job cycle here" . PHP_EOL;
-            sleep(1);
-        }
-
-        echo "end: " . PHP_EOL;
-    }
-}
-```
-
-```php
-$daemon = TaskDaemon::getInstance();
-$daemon->defineTask('infinite', new InfiniteTask());
-
-$daemon->runTask('infinite');
-```
-
-More examples (see run.php):
 ```shell
 > cd Example
-The following line could be executed several times, only first run will create a daemon:
+
+The following could be executed several times, only first run will create a daemon,
+later invocations will just simply try to run the task:
 > php run.php
+
+Restart the daemon:
+> php run.php restart
+
 Terminate the daemon:
 > php run.php stop
 ```

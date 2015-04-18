@@ -93,14 +93,20 @@ class TaskDaemon
      */
     public function defineTask($name, $object)
     {
+        $options = static::getOptions();
+        $debug = @$options['debug'] === true;
+
         if ($this->started)
-            throw new \Exception("Define tasks before start()ing the daemon");
+            throw new \Exception("Define tasks before start()ing the daemon not after");
 
         if (! $object instanceof AbstractTask)
             throw new \Exception("Task must implement AbstractTask");
 
         $object->setDaemon($this);
         $this->tasks[$name] = $object;
+
+        if ($debug)
+            echo "==> Task defined: $name" . PHP_EOL;
 
         return $this;
     }
@@ -119,7 +125,7 @@ class TaskDaemon
         $debug = @$options['debug'] === true;
 
         if ($debug)
-            echo "Adding task: $name" . PHP_EOL;
+            echo "==> Trying to run task: $name" . PHP_EOL;
 
         $function = $options['namespace'] . '-' . $name;
         $data = json_encode($data);
@@ -134,7 +140,7 @@ class TaskDaemon
         $gmClient->doBackground($function, $data, $unique);
         $code = $gmClient->returnCode();
         if ($code != GEARMAN_SUCCESS)
-            throw new \Exception("Could not add task: $name ($code)");
+            throw new \Exception("Could not run task: $name ($code)");
 
         return $this;
     }
@@ -155,11 +161,11 @@ class TaskDaemon
         $ping = $gmClient->ping(self::generateUnique());
 
         if ($debug)
-            echo "Pinging job server: " . ($ping ? 'Success' : 'Failure') . PHP_EOL;
+            echo "==> Pinging job server: " . ($ping ? 'Success' : 'Failure') . PHP_EOL;
 
         $code = $gmClient->returnCode();
         if ($code != GEARMAN_SUCCESS)
-            throw new \Exception("Could not add task: $name ($code)");
+            throw new \Exception("Ping failed ($code)");
 
         return $ping;
     }
@@ -187,12 +193,12 @@ class TaskDaemon
         if (!flock($fpPid, LOCK_EX | LOCK_NB)) {
             fclose($fpPid);
             if ($debug)
-                echo "Daemon already running" . PHP_EOL;
+                echo "==> Daemon already running" . PHP_EOL;
             return $this;
         }
 
         if ($debug)
-            echo "Daemonizing process" . PHP_EOL;
+            echo "==> Daemonizing... " . PHP_EOL;
 
         $fork = pcntl_fork();
         if ($fork < 0)
@@ -209,7 +215,7 @@ class TaskDaemon
 
         $exitCallback = function ($signo) use ($fpPid, $pidFile, $debug) {
             if ($debug)
-                echo "Cleaning and exiting" . PHP_EOL;
+                echo "==> Cleaning and exiting" . PHP_EOL;
 
             foreach ($this->pids as $pid)
                 posix_kill($pid, SIGTERM);
@@ -238,7 +244,7 @@ class TaskDaemon
             $function = $options['namespace'] . '-' . $name;
             $task = function ($job) use ($name, $function, $object, $options) {
                 if (@$options['debug'] === true)
-                    echo "Running worker for: $function" . PHP_EOL;
+                    echo "==> Running worker for: $function" . PHP_EOL;
 
                 $worker = clone $object;
                 $data = json_decode($job->workload(), true);
@@ -257,7 +263,7 @@ class TaskDaemon
             $dead = pcntl_waitpid(-1, $status, WNOHANG);
             while ($dead > 0) {
                 if (@$options['debug'] === true)
-                    echo "Worker died: $dead" . PHP_EOL;
+                    echo "==> Worker terminated: $dead" . PHP_EOL;
 
                 $index = array_search($dead, $this->pids);
                 if ($index !== false)
@@ -293,7 +299,7 @@ class TaskDaemon
                                 break;
                             default:
                                 if (@$options['debug'] === true)
-                                    echo "Worker failed: $code";
+                                    echo "==> Worker failed: $code";
                                 exit(1);
                         }
                     }
@@ -329,14 +335,14 @@ class TaskDaemon
             flock($fpPid, LOCK_UN);
             fclose($fpPid);
             if ($debug)
-                echo "Daemon not running" . PHP_EOL;
+                echo "==> Daemon not running" . PHP_EOL;
             return;
         }
 
         fclose($fpPid);
         $pid = (int)file_get_contents($pidFile);
         if ($debug)
-            echo "Killing PID $pid..." . PHP_EOL;
+            echo "==> Killing the daemon (PID $pid)..." . PHP_EOL;
 
         posix_kill($pid, SIGTERM);
         pcntl_waitpid($pid, $status);
