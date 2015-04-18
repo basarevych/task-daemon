@@ -7,14 +7,14 @@ Gearman internally, but it is not exposed to the user.
 Installation
 ------------
 
-This daemon requires running Gearman server and the following PHP extensions:
+This daemon requires a running Gearman server and the following PHP extensions:
 
 * pcntl
 * posix
 * openssl
 * gearman
 
-Add to require section of composer.json:
+Add to require section of your composer.json:
 
 ```
     "basarevych/task-daemon": "0.2.*"
@@ -27,6 +27,9 @@ Have a look at Example directory. Here you will find ReverseTask.php which is ou
 InfiniteTask.php which is another example task and run.php which is our program.
 
 ```shell
+> git clone https://github.com/basarevych/task-daemon
+> cd task-daemon
+> ./composer.phar install
 > cd Example
 
 The following could be executed several times, only first run will create a daemon,
