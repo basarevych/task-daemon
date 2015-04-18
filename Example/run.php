@@ -23,6 +23,10 @@ TaskDaemon::setOptions([
 // Get the TaskDaemon instance (singletone)
 $daemon = TaskDaemon::getInstance();
 
+// Define our tasks
+$daemon->defineTask('reverse', new ReverseTask());
+$daemon->defineTask('infinite', new InfiniteTask());
+
 if ($argc >= 2) {
     switch ($argv[1]) {
         case 'stop':
@@ -39,10 +43,6 @@ if ($argc >= 2) {
     if (!$daemon->ping())
         exit(1);
 
-    // Define our tasks
-    $daemon->defineTask('reverse', new ReverseTask());
-    $daemon->defineTask('infinite', new InfiniteTask());
-
     // Daemonize if there is no daemon already in which case this will do nothing
     $daemon->start();
 
@@ -55,4 +55,5 @@ if ($argc >= 2) {
 
     // You can rerun "php run.php" anytime you want now
     // Our daemon is started now so it won't fork anymore
+    // and will only try to relaunch the tasks
 }

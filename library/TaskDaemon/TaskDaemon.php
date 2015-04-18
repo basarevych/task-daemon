@@ -177,6 +177,9 @@ class TaskDaemon
      */
     public function start()
     {
+        if (count($this->tasks) == 0)
+            throw new \Exception("There are no tasks defined - can not start");
+
         $this->started = true;
 
         $options = static::getOptions();
@@ -355,6 +358,9 @@ class TaskDaemon
      */
     public function restart()
     {
+        if (count($this->tasks) == 0)
+            throw new \Exception("There are no tasks defined - can not restart");
+
         $this->stop();
         sleep(3);
         $this->start();
