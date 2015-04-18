@@ -23,14 +23,14 @@ Add to require section of composer.json:
 Examples
 --------
 
-Have a look at Example directory. Here you will find ReverseTask.php which is our example task and
-run.php which is our program.
+Have a look at Example directory. Here you will find ReverseTask.php which is our example task,
+InfiniteTask.php which is another example task and run.php which is our program.
 
 ```shell
 > cd Example
 
 The following could be executed several times, only first run will create a daemon,
-later invocations will just simply try to run the task:
+later invocations will just simply try to run the tasks:
 > php run.php
 
 Restart the daemon:
