@@ -171,6 +171,35 @@ class TaskDaemon
     }
 
     /**
+     * Get daemon PID
+     *
+     * @return integer|false    Returns false if there is no daemon running
+     */
+    public function getPid()
+    {
+        $options = static::getOptions();
+        $debug = @$options['debug'] === true;
+
+        $pidFile = $options['pid_file'];
+        if (!$pidFile)
+            throw new \Exception("No pid_file in the config");
+
+        $fpPid = fopen($pidFile, "c");
+        if (!$fpPid)
+            throw new \Exception("Could not open " . $pidFile);
+
+        if (!flock($fpPid, LOCK_EX | LOCK_NB)) {
+            fclose($fpPid);
+            return (int)file_get_contents($pidFile);
+        }
+
+        flock($fpPid, LOCK_UN);
+        fclose($fpPid);
+        @unlink($pidFile);
+        return false;
+    }
+
+    /**
      * Start the daemon with workers (by fork()ing)
      *
      * @return TaskDaemon
@@ -201,7 +230,7 @@ class TaskDaemon
         }
 
         if ($debug)
-            echo "==> Daemonizing... " . PHP_EOL;
+            echo "==> Starting the daemon... " . PHP_EOL;
 
         $fork = pcntl_fork();
         if ($fork < 0)
@@ -220,8 +249,11 @@ class TaskDaemon
             if ($debug)
                 echo "==> Cleaning and exiting" . PHP_EOL;
 
-            foreach ($this->pids as $pid)
+            foreach ($this->pids as $pid) {
+                if ($debug)
+                    echo "==> Terminating worker PID $pid" . PHP_EOL;
                 posix_kill($pid, SIGTERM);
+            }
             foreach ($this->pids as $pid)
                 pcntl_waitpid($pid, $status);
 
@@ -229,6 +261,8 @@ class TaskDaemon
             fclose($fpPid);
             @unlink($pidFile);
 
+            if ($debug)
+                echo "==> Daemon is shut down" . PHP_EOL;
             exit;
         };
 
@@ -247,7 +281,7 @@ class TaskDaemon
             $function = $options['namespace'] . '-' . $name;
             $task = function ($job) use ($name, $function, $object, $options) {
                 if (@$options['debug'] === true)
-                    echo "==> Running worker for: $function" . PHP_EOL;
+                    echo "==> Running worker for: $function (PID " . getmypid() . ")" . PHP_EOL;
 
                 $worker = clone $object;
                 $data = json_decode($job->workload(), true);
@@ -266,7 +300,7 @@ class TaskDaemon
             $dead = pcntl_waitpid(-1, $status, WNOHANG);
             while ($dead > 0) {
                 if (@$options['debug'] === true)
-                    echo "==> Worker terminated: $dead" . PHP_EOL;
+                    echo "==> Worker PID $dead terminated" . PHP_EOL;
 
                 $index = array_search($dead, $this->pids);
                 if ($index !== false)
@@ -362,7 +396,11 @@ class TaskDaemon
             throw new \Exception("There are no tasks defined - can not restart");
 
         $this->stop();
-        sleep(3);
+
+        do {
+            sleep(1);
+        } while ($this->getPid() !== false);
+
         $this->start();
     }
 

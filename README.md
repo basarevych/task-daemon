@@ -23,25 +23,34 @@ Add to require section of your composer.json:
 Examples
 --------
 
-Have a look at Example directory. Here you will find ReverseTask.php which is our example task,
-InfiniteTask.php which is another example task and run.php which is our program.
+Have a look at Example directory.
+
+* ReverseWordTask.php - our example task
+* InfiniteTask.php - another example (infinitely running)
+* The rest is our example programs
 
 ```shell
+Initialize:
 > git clone https://github.com/basarevych/task-daemon
 > cd task-daemon
 > ./composer.phar install
 > cd Example
 
-The following could be executed several times, only first run will create a daemon,
-later invocations will just simply try to run the tasks:
-> php run.php
+Start or restart the daemon:
+> php 1.start-the-daemon.php
 
-Restart the daemon:
-> php run.php restart
+Print 'foobar' in reverse:
+> php 2.reverse-word-task.php foobar
 
-Terminate the daemon:
-> php run.php stop
+Launch our long running task:
+> php 3.infinite-task.php
+
+Terminate:
+> php 4.stop-the-daemon.php
 ```
+
+You can run steps 2 and 3 several times, but if the task is already executing
+(and is not terminated yet) running it again will do nothing.
 
 Methods
 -------
@@ -60,6 +69,12 @@ Methods
         'port' => 4730,
     ],
   ```
+
+  **NOTE** 'namespace' and 'pid_file' must be the same
+  among all scripts that share the same daemon.
+
+  **NOTE** If 'debug' is false (the default) then no text output
+  from the daemon or its tasks will be printed to console.
 
 * **static TaskDaemon::getInstance()**
 
@@ -83,6 +98,10 @@ Methods
 * **ping()**
 
   Return true if we are connected to Gearman server.
+
+* **getPid()**
+
+  Returns PID of the daemon or false if the daemon is not running.
 
 * **start()**
 

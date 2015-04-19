@@ -4,6 +4,10 @@ namespace Example;
 
 use TaskDaemon\AbstractTask;
 
+/**
+ * This task will run indefinitely
+ * Set 'debug' option to true in order to see the text printed by this task
+ */
 class InfiniteTask extends AbstractTask
 {
     public function run(&$exitRequested)
